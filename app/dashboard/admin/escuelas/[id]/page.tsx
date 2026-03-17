@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+
 export default function DetalleEscuela({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params)
   const [escuela, setEscuela] = useState<any>(null)

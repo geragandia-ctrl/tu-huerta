@@ -128,6 +128,9 @@ export default function DashboardAdmin() {
             <Link href="/dashboard/admin/escuelas/nueva" className="btn-primary text-sm py-2">
               + Nueva escuela
             </Link>
+            <Link href="/dashboard/admin/resumen" className="btn-secondary text-sm py-2">
+  📊 Ver resumen
+</Link>
             <button onClick={handleLogout} className="text-sm text-neutral-500 hover:text-neutral-700">
               Cerrar sesión
             </button>
