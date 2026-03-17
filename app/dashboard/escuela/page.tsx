@@ -214,14 +214,23 @@ export default function DashboardEscuela() {
             ) : (
               <div className="space-y-3">
                 {problemas.map((prob) => (
-                  <div key={prob.id} className="flex items-center justify-between bg-orange-50 rounded-xl px-4 py-3 border border-orange-100">
-                    <div>
-                      <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{prob.descripcion}</p>
-                    </div>
-                    <span className="badge-problema">Abierto</span>
-                  </div>
-                ))}
+  <div key={prob.id} className="rounded-xl border border-orange-100 overflow-hidden">
+    <div className="flex items-start justify-between gap-2 bg-orange-50 px-4 py-3">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
+        <p className="text-xs text-neutral-500 mt-0.5">{prob.descripcion}</p>
+        <p className="text-xs text-neutral-400 mt-1">{new Date(prob.created_at).toLocaleDateString('es-AR')}</p>
+      </div>
+      <span className="badge-problema flex-shrink-0">Abierto</span>
+    </div>
+    {prob.respuesta_admin && (
+      <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
+        <p className="text-xs font-semibold text-primary-700 mb-1">Respuesta del ministerio:</p>
+        <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
+      </div>
+    )}
+  </div>
+))}
               </div>
             )}
           </div>
