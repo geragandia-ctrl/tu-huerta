@@ -15,8 +15,7 @@ export const metadata = {
   description: 'Sistema de seguimiento del Programa Tu Huerta. Ministerio de Ambiente y Economía Circular de Córdoba.',
 }
 
-export default function RootLayout({ children }) {
-  return (
+export default function RootLayout({ children }: { children: React.ReactNode }) {  return (
     <html lang="es">
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
