@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-
 export default function DetalleEscuela({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params)
   const [escuela, setEscuela] = useState<any>(null)
@@ -16,6 +15,7 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
   const [actualizaciones, setActualizaciones] = useState<any[]>([])
   const [problemas, setProblemas] = useState<any[]>([])
   const [respuestas, setRespuestas] = useState<{ [key: string]: string }>({})
+  const [modalActualizacion, setModalActualizacion] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -46,7 +46,8 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
       setActualizaciones(actualizacionesData || [])
 
       const { data: problemasData } = await supabase
-        .from('problemas').select('*')
+        .from('problemas')
+        .select('*, fotos_problemas(*)')
         .eq('escuela_id', id)
         .order('created_at', { ascending: false })
       setProblemas(problemasData || [])
@@ -75,8 +76,8 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
     const supabase = createClient()
     const update: any = { [campo]: !valor }
     if (!valor) update[`${campo}_fecha`] = new Date().toISOString().split('T')[0]
-    await supabase.from('materiales').update(update).eq('escuela_id', id)
-    setMateriales((prev: any) => ({ ...prev, ...update }))
+    const { error } = await supabase.from('materiales').update(update).eq('escuela_id', id)
+    if (!error) setMateriales((prev: any) => ({ ...prev, ...update }))
   }
 
   if (loading) {
@@ -93,7 +94,40 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
   return (
     <main className="min-h-screen bg-neutral-50">
 
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
+      {/* Modal actualizacion */}
+      {modalActualizacion && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setModalActualizacion(null)}>
+          <div className="bg-white rounded-2xl shadow-hover max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-neutral-400">{new Date(modalActualizacion.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                  <span className={`mt-1 inline-block ${modalActualizacion.estado === 'bien' ? 'badge-bien' : modalActualizacion.estado === 'regular' ? 'badge-regular' : 'badge-mal'}`}>
+                    {modalActualizacion.estado === 'bien' ? '😊 Bien' : modalActualizacion.estado === 'regular' ? '😐 Regular' : '😟 Mal'}
+                  </span>
+                </div>
+                <button onClick={() => setModalActualizacion(null)} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">×</button>
+              </div>
+              <p className="text-sm text-neutral-700 mb-4">{modalActualizacion.descripcion}</p>
+              {modalActualizacion.fotos?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-neutral-500 mb-2">FOTOS</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {modalActualizacion.fotos.map((foto: any) => (
+                      <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
+                        <img src={foto.url} alt="foto huerta" className="w-full h-36 object-cover rounded-xl hover:opacity-90 transition-opacity" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navbar */}
+      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-40">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard/admin" className="flex items-center gap-2">
             <span className="text-2xl">🌱</span>
@@ -145,9 +179,7 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
                   <span className="text-xl">{item.icon}</span>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-neutral-700">{item.label}</p>
-                    {entregado && fecha && (
-                      <p className="text-xs text-neutral-400">{new Date(fecha).toLocaleDateString('es-AR')}</p>
-                    )}
+                    {entregado && fecha && <p className="text-xs text-neutral-400">{new Date(fecha).toLocaleDateString('es-AR')}</p>}
                   </div>
                   <span className={entregado ? 'badge-bien' : 'badge-regular'}>
                     {entregado ? '✓ Entregado' : 'Pendiente'}
@@ -162,19 +194,17 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
 
           {/* Problemas */}
           <div className="card shadow-card">
-            <h2 className="text-base font-semibold text-neutral-800 mb-4">⚠️ Problemas reportados</h2>
+            <h2 className="text-base font-semibold text-neutral-800 mb-4">⚠️ Casos reportados</h2>
             {problemas.length === 0 ? (
               <div className="text-center py-8">
                 <span className="text-3xl block mb-2">✅</span>
-                <p className="text-sm text-neutral-400">Sin problemas reportados</p>
+                <p className="text-sm text-neutral-400">Sin casos reportados</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {problemas.map((prob) => (
                   <div key={prob.id} className={`rounded-xl border overflow-hidden ${prob.resuelto ? 'opacity-60' : ''}`}>
-                    
-                    {/* Problema */}
-                    <div className={`px-4 py-3 ${prob.resuelto ? 'bg-neutral-50 border-neutral-200' : 'bg-orange-50 border-orange-100'}`}>
+                    <div className={`px-4 py-3 ${prob.resuelto ? 'bg-neutral-50 border-neutral-200' : 'bg-orange-50'}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
@@ -184,15 +214,29 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
                         <button
                           onClick={() => toggleProblema(prob.id, prob.resuelto)}
                           className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex-shrink-0 ${prob.resuelto ? 'bg-neutral-200 text-neutral-600' : 'bg-primary-600 text-white hover:bg-primary-500'}`}>
-                          {prob.resuelto ? 'Reabrir' : 'Resolver'}
+                          {prob.resuelto ? 'Reabrir caso' : 'Marcar resuelto'}
                         </button>
                       </div>
                     </div>
 
+                    {/* Fotos del problema */}
+                    {prob.fotos_problemas?.length > 0 && (
+                      <div className="px-4 py-3 bg-white border-t border-neutral-100">
+                        <p className="text-xs font-semibold text-neutral-500 mb-2">FOTOS</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {prob.fotos_problemas.map((foto: any) => (
+                            <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
+                              <img src={foto.url} alt="foto problema" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Respuesta existente */}
                     {prob.respuesta_admin && (
                       <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
-                        <p className="text-xs font-semibold text-primary-700 mb-1">Respuesta del ministerio:</p>
+                        <p className="text-xs font-semibold text-primary-700 mb-1">Tu respuesta:</p>
                         <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
                       </div>
                     )}
@@ -216,7 +260,6 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
                         </div>
                       </div>
                     )}
-
                   </div>
                 ))}
               </div>
@@ -232,26 +275,26 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
                 <p className="text-sm text-neutral-400">Sin actualizaciones aún</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {actualizaciones.map((act) => (
-                  <div key={act.id} className="bg-neutral-50 rounded-xl px-4 py-3 border border-neutral-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-neutral-400">{new Date(act.created_at).toLocaleDateString('es-AR')}</p>
+                  <button
+                    key={act.id}
+                    onClick={() => setModalActualizacion(act)}
+                    className="w-full flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group cursor-pointer text-left">
+                    <div>
+                      <p className="text-sm text-neutral-700 line-clamp-1 group-hover:text-primary-700">{act.descripcion}</p>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        {new Date(act.created_at).toLocaleDateString('es-AR')}
+                        {act.fotos?.length > 0 && <span className="ml-2">📷 {act.fotos.length} foto{act.fotos.length > 1 ? 's' : ''}</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <span className={act.estado === 'bien' ? 'badge-bien' : act.estado === 'regular' ? 'badge-regular' : 'badge-mal'}>
                         {act.estado}
                       </span>
+                      <span className="text-neutral-300 group-hover:text-primary-400 text-lg">›</span>
                     </div>
-                    <p className="text-sm text-neutral-700">{act.descripcion}</p>
-                    {act.fotos?.length > 0 && (
-                      <div className="flex gap-2 mt-2 flex-wrap">
-                        {act.fotos.map((foto: any) => (
-                          <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                            <img src={foto.url} alt="foto huerta" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
