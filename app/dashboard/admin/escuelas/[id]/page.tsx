@@ -203,117 +203,111 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-          {/* Problemas */}
-          <div className="card shadow-card">
-            <h2 className="text-base font-semibold text-neutral-800 mb-4">⚠️ Casos reportados</h2>
-            {problemas.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-3xl block mb-2">✅</span>
-                <p className="text-sm text-neutral-400">Sin casos reportados</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {problemas.map((prob) => (
-                  <div key={prob.id} className={`rounded-xl border overflow-hidden ${prob.resuelto ? 'opacity-60' : ''}`}>
-                    <div className={`px-4 py-3 ${prob.resuelto ? 'bg-neutral-50 border-neutral-200' : 'bg-orange-50'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
-                          <p className="text-xs text-neutral-500 mt-0.5">{prob.descripcion}</p>
-                          <p className="text-xs text-neutral-400 mt-1">{new Date(prob.created_at).toLocaleDateString('es-AR')}</p>
-                        </div>
-                        <button
-                          onClick={() => toggleProblema(prob.id, prob.resuelto)}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex-shrink-0 ${prob.resuelto ? 'bg-neutral-200 text-neutral-600' : 'bg-primary-600 text-white hover:bg-primary-500'}`}>
-                          {prob.resuelto ? 'Reabrir caso' : 'Marcar resuelto'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Fotos del problema */}
-                    {prob.fotos_problemas?.length > 0 && (
-                      <div className="px-4 py-3 bg-white border-t border-neutral-100">
-                        <p className="text-xs font-semibold text-neutral-500 mb-2">FOTOS</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {prob.fotos_problemas.map((foto: any) => (
-                            <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                              <img src={foto.url} alt="foto problema" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Respuesta existente */}
-                    {prob.respuesta_admin && (
-                      <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
-                        <p className="text-xs font-semibold text-primary-700 mb-1">Tu respuesta:</p>
-                        <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
-                      </div>
-                    )}
-
-                    {/* Campo para responder */}
-                    {!prob.resuelto && (
-                      <div className="px-4 py-3 bg-white border-t border-neutral-100">
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Escribir respuesta a la escuela..."
-                            value={respuestas[prob.id] || ''}
-                            onChange={e => setRespuestas(prev => ({ ...prev, [prob.id]: e.target.value }))}
-                            className="flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
-                          />
-                          <button
-                            onClick={() => enviarRespuesta(prob.id)}
-                            className="btn-primary text-xs py-2 px-3 flex-shrink-0">
-                            Enviar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Actualizaciones */}
-          <div className="card shadow-card">
-            <h2 className="text-base font-semibold text-neutral-800 mb-4">📸 Historial de actualizaciones</h2>
-            {actualizaciones.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-3xl block mb-2">🌱</span>
-                <p className="text-sm text-neutral-400">Sin actualizaciones aún</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {actualizaciones.map((act) => (
-                  <button
-                    key={act.id}
-                    onClick={() => setModalActualizacion(act)}
-                    className="w-full flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group cursor-pointer text-left">
-                    <div>
-                      <p className="text-sm text-neutral-700 line-clamp-1 group-hover:text-primary-700">{act.descripcion}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5">
-                        {new Date(act.created_at).toLocaleDateString('es-AR')}
-                        {act.fotos?.length > 0 && <span className="ml-2">📷 {act.fotos.length} foto{act.fotos.length > 1 ? 's' : ''}</span>}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={act.estado === 'bien' ? 'badge-bien' : act.estado === 'regular' ? 'badge-regular' : 'badge-mal'}>
-                        {act.estado}
-                      </span>
-                      <span className="text-neutral-300 group-hover:text-primary-400 text-lg">›</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
+  {/* Problemas */}
+  <div className="card shadow-card flex flex-col h-[500px]">
+    <h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">⚠️ Casos reportados</h2>
+    <div className="overflow-y-auto flex-1 space-y-4 pr-1">
+      {problemas.length === 0 ? (
+        <div className="text-center py-8">
+          <span className="text-3xl block mb-2">✅</span>
+          <p className="text-sm text-neutral-400">Sin casos reportados</p>
         </div>
+      ) : (
+        problemas.map((prob) => (
+          <div key={prob.id} className={`rounded-xl border overflow-hidden ${prob.resuelto ? 'opacity-60' : ''}`}>
+            <div className={`px-4 py-3 ${prob.resuelto ? 'bg-neutral-50 border-neutral-200' : 'bg-orange-50'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{prob.descripcion}</p>
+                  <p className="text-xs text-neutral-400 mt-1">{new Date(prob.created_at).toLocaleDateString('es-AR')}</p>
+                </div>
+                <button
+                  onClick={() => toggleProblema(prob.id, prob.resuelto)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex-shrink-0 ${prob.resuelto ? 'bg-neutral-200 text-neutral-600' : 'bg-primary-600 text-white hover:bg-primary-500'}`}>
+                  {prob.resuelto ? 'Reabrir caso' : 'Marcar resuelto'}
+                </button>
+              </div>
+            </div>
+            {prob.fotos_problemas?.length > 0 && (
+              <div className="px-4 py-3 bg-white border-t border-neutral-100">
+                <p className="text-xs font-semibold text-neutral-500 mb-2">FOTOS</p>
+                <div className="flex gap-2 flex-wrap">
+                  {prob.fotos_problemas.map((foto: any) => (
+                    <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
+                      <img src={foto.url} alt="foto problema" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {prob.respuesta_admin && (
+              <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
+                <p className="text-xs font-semibold text-primary-700 mb-1">Tu respuesta:</p>
+                <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
+              </div>
+            )}
+            {!prob.resuelto && (
+              <div className="px-4 py-3 bg-white border-t border-neutral-100">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Escribir respuesta a la escuela..."
+                    value={respuestas[prob.id] || ''}
+                    onChange={e => setRespuestas(prev => ({ ...prev, [prob.id]: e.target.value }))}
+                    className="flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    onClick={() => enviarRespuesta(prob.id)}
+                    className="btn-primary text-xs py-2 px-3 flex-shrink-0">
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+
+  {/* Actualizaciones */}
+  <div className="card shadow-card flex flex-col h-[500px]">
+    <h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">📸 Historial de actualizaciones</h2>
+    <div className="overflow-y-auto flex-1 space-y-2 pr-1">
+      {actualizaciones.length === 0 ? (
+        <div className="text-center py-8">
+          <span className="text-3xl block mb-2">🌱</span>
+          <p className="text-sm text-neutral-400">Sin actualizaciones aún</p>
+        </div>
+      ) : (
+        actualizaciones.map((act) => (
+          <button
+            key={act.id}
+            onClick={() => setModalActualizacion(act)}
+            className="w-full flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group cursor-pointer text-left">
+            <div>
+              <p className="text-sm text-neutral-700 line-clamp-1 group-hover:text-primary-700">{act.descripcion}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {new Date(act.created_at).toLocaleDateString('es-AR')}
+                {act.fotos?.length > 0 && <span className="ml-2">📷 {act.fotos.length} foto{act.fotos.length > 1 ? 's' : ''}</span>}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={act.estado === 'bien' ? 'badge-bien' : act.estado === 'regular' ? 'badge-regular' : 'badge-mal'}>
+                {act.estado}
+              </span>
+              <span className="text-neutral-300 group-hover:text-primary-400 text-lg">›</span>
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  </div>
+
+</div>
       </div>
     </main>
   )

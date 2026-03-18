@@ -49,7 +49,6 @@ export default function DashboardEscuela() {
         .from('problemas')
         .select('*, fotos_problemas(*)')
         .eq('escuela_id', perfilData.escuela_id)
-        .eq('resuelto', false)
         .order('created_at', { ascending: false })
       setProblemas(problemasData || [])
 
@@ -166,87 +165,87 @@ export default function DashboardEscuela() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-          {/* Actualizaciones */}
-          <div className="card shadow-card">
-            <h2 className="text-base font-semibold text-neutral-800 mb-4">📸 Mis actualizaciones</h2>
-            {actualizaciones.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-3xl block mb-2">🌱</span>
-                <p className="text-sm text-neutral-400">Todavía no cargaste ninguna actualización</p>
-                <Link href="/dashboard/escuela/nueva-actualizacion" className="btn-primary text-sm py-2 mt-4 inline-block">Cargar primera actualización</Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {actualizaciones.map((act) => (
-                  <button
-                    key={act.id}
-                    onClick={() => setModalActualizacion(act)}
-                    className="w-full flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group cursor-pointer text-left">
-                    <div>
-                      <p className="text-sm text-neutral-700 line-clamp-1 group-hover:text-primary-700">{act.descripcion}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5">
-                        {new Date(act.created_at).toLocaleDateString('es-AR')}
-                        {act.fotos?.length > 0 && <span className="ml-2">📷 {act.fotos.length} foto{act.fotos.length > 1 ? 's' : ''}</span>}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={act.estado === 'bien' ? 'badge-bien' : act.estado === 'regular' ? 'badge-regular' : 'badge-mal'}>
-                        {act.estado}
-                      </span>
-                      <span className="text-neutral-300 group-hover:text-primary-400 text-lg">›</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Problemas */}
-          <div className="card shadow-card">
-            <h2 className="text-base font-semibold text-neutral-800 mb-4">⚠️ Casos abiertos</h2>
-            {problemas.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-3xl block mb-2">✅</span>
-                <p className="text-sm text-neutral-400">Sin casos abiertos. ¡Todo bien!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {problemas.map((prob) => (
-                  <div key={prob.id} className="rounded-xl border border-orange-100 overflow-hidden">
-                    <div className="flex items-start justify-between gap-2 bg-orange-50 px-4 py-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
-                        <p className="text-xs text-neutral-500 mt-0.5">{prob.descripcion}</p>
-                        <p className="text-xs text-neutral-400 mt-1">{new Date(prob.created_at).toLocaleDateString('es-AR')}</p>
-                      </div>
-                      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-700 flex-shrink-0">En revisión</span>
-                    </div>
-                    {prob.respuesta_admin && (
-                      <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
-                        <p className="text-xs font-semibold text-primary-700 mb-1">Respuesta del ministerio:</p>
-                        <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
-                      </div>
-                    )}
-                    {prob.fotos_problemas?.length > 0 && (
-                      <div className="px-4 py-3 bg-white border-t border-neutral-100">
-                        <div className="flex gap-2 flex-wrap">
-                          {prob.fotos_problemas.map((foto: any) => (
-                            <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                              <img src={foto.url} alt="foto problema" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+  {/* Actualizaciones */}
+  <div className="card shadow-card flex flex-col h-[500px]">
+    <h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">📸 Mis actualizaciones</h2>
+    <div className="overflow-y-auto flex-1 space-y-2 pr-1">
+      {actualizaciones.length === 0 ? (
+        <div className="text-center py-8">
+          <span className="text-3xl block mb-2">🌱</span>
+          <p className="text-sm text-neutral-400">Todavía no cargaste ninguna actualización</p>
+          <Link href="/dashboard/escuela/nueva-actualizacion" className="btn-primary text-sm py-2 mt-4 inline-block">Cargar primera actualización</Link>
         </div>
+      ) : (
+        actualizaciones.map((act) => (
+          <button
+            key={act.id}
+            onClick={() => setModalActualizacion(act)}
+            className="w-full flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group cursor-pointer text-left">
+            <div>
+              <p className="text-sm text-neutral-700 line-clamp-1 group-hover:text-primary-700">{act.descripcion}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {new Date(act.created_at).toLocaleDateString('es-AR')}
+                {act.fotos?.length > 0 && <span className="ml-2">📷 {act.fotos.length} foto{act.fotos.length > 1 ? 's' : ''}</span>}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={act.estado === 'bien' ? 'badge-bien' : act.estado === 'regular' ? 'badge-regular' : 'badge-mal'}>
+                {act.estado}
+              </span>
+              <span className="text-neutral-300 group-hover:text-primary-400 text-lg">›</span>
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  </div>
+
+  {/* Casos abiertos */}
+  <div className="card shadow-card flex flex-col h-[500px]">
+<h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">⚠️ Mis casos reportados</h2>    <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+      {problemas.length === 0 ? (
+        <div className="text-center py-8">
+          <span className="text-3xl block mb-2">✅</span>
+          <p className="text-sm text-neutral-400">Sin casos abiertos. ¡Todo bien!</p>
+        </div>
+      ) : (
+        problemas.map((prob) => (
+          <div key={prob.id} className="rounded-xl border border-orange-100 overflow-hidden">
+            <div className="flex items-start justify-between gap-2 bg-orange-50 px-4 py-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-neutral-700">{prob.tipo}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">{prob.descripcion}</p>
+                <p className="text-xs text-neutral-400 mt-1">{new Date(prob.created_at).toLocaleDateString('es-AR')}</p>
+              </div>
+<span className={`text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0 ${prob.resuelto ? 'bg-primary-100 text-primary-700' : 'bg-orange-100 text-orange-700'}`}>
+  {prob.resuelto ? 'Resuelto ✓' : 'En revisión'}
+</span>            </div>
+            {prob.respuesta_admin && (
+              <div className="px-4 py-3 bg-primary-50 border-t border-primary-100">
+                <p className="text-xs font-semibold text-primary-700 mb-1">Respuesta del ministerio:</p>
+                <p className="text-xs text-primary-800">{prob.respuesta_admin}</p>
+              </div>
+            )}
+            {prob.fotos_problemas?.length > 0 && (
+              <div className="px-4 py-3 bg-white border-t border-neutral-100">
+                <div className="flex gap-2 flex-wrap">
+                  {prob.fotos_problemas.map((foto: any) => (
+                    <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
+                      <img src={foto.url} alt="foto problema" className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+
+</div>
       </div>
     </main>
   )
