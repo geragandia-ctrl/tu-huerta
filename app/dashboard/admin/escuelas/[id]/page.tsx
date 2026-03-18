@@ -63,13 +63,15 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
     setProblemas(prev => prev.map(p => p.id === probId ? { ...p, resuelto: !resuelto } : p))
   }
 
-  async function enviarRespuesta(probId: string) {
-    const respuesta = respuestas[probId]
-    if (!respuesta?.trim()) return
+  async function toggleMaterial(campo: string, valor: boolean) {
     const supabase = createClient()
-    await supabase.from('problemas').update({ respuesta_admin: respuesta }).eq('id', probId)
-    setProblemas(prev => prev.map(p => p.id === probId ? { ...p, respuesta_admin: respuesta } : p))
-    setRespuestas(prev => ({ ...prev, [probId]: '' }))
+    const nuevoValor = !valor
+    const update: any = { [campo]: nuevoValor }
+    if (nuevoValor === true) update[`${campo}_fecha`] = new Date().toISOString().split('T')[0]
+    console.log('Actualizando:', campo, 'a:', nuevoValor, 'para escuela:', id)
+    const { data, error } = await supabase.from('materiales').update(update).eq('escuela_id', id).select()
+    console.log('Resultado:', data, 'Error:', error)
+    if (!error) setMateriales((prev: any) => ({ ...prev, ...update }))
   }
 
   async function toggleMaterial(campo: string, valor: boolean) {
