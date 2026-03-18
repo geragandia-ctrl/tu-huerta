@@ -73,15 +73,25 @@ export default function DetalleEscuela({ params }: { params: Promise<{ id: strin
   }
 
   async function toggleMaterial(campo: string, valor: boolean) {
-    const supabase = createClient()
-    const nuevoValor = !valor
-    const update: any = { [campo]: nuevoValor }
-    if (nuevoValor === true) update[`${campo}_fecha`] = new Date().toISOString().split('T')[0]
-    console.log('Actualizando:', campo, 'a:', nuevoValor, 'para escuela:', id)
-    const { data, error } = await supabase.from('materiales').update(update).eq('escuela_id', id).select()
-    console.log('Resultado:', data, 'Error:', error)
-    if (!error) setMateriales((prev: any) => ({ ...prev, ...update }))
+  const supabase = createClient()
+  const nuevoValor = !valor
+  const update: any = { [campo]: nuevoValor }
+  
+  // Mapa de columnas de fecha para cada material
+  const fechas: { [key: string]: string } = {
+    taller_capacitacion: 'taller_fecha',
+    semillas: 'semillas_fecha',
+    herramientas: 'herramientas_fecha',
+    certificacion: 'certificacion_fecha',
   }
+  
+  if (nuevoValor === true && fechas[campo]) {
+    update[fechas[campo]] = new Date().toISOString().split('T')[0]
+  }
+  
+  const { error } = await supabase.from('materiales').update(update).eq('escuela_id', id)
+  if (!error) setMateriales((prev: any) => ({ ...prev, ...update }))
+}
 
   if (loading) {
     return (
