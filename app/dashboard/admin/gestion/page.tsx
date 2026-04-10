@@ -15,7 +15,9 @@ export default function GestionEscuelas() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<'todas' | 'activas' | 'inactivas'>('todas')
   const [busqueda, setBusqueda] = useState('')
-  const [reenvios, setReenvios] = useState<{ [key: string]: 'idle' | 'loading' | 'ok' | 'error' }>({})
+  const [reenvios, setReenvios] = useState<{
+    [key: string]: 'idle' | 'loading' | 'ok_invite' | 'ok_reset' | 'error'
+  }>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -56,12 +58,17 @@ export default function GestionEscuelas() {
       credentials: 'same-origin',
       body: JSON.stringify({ email, redirectTo }),
     })
-    const json = (await res.json()) as { error?: string }
+    const json = (await res.json()) as {
+      error?: string
+      mode?: 'invite' | 'password_reset'
+    }
     if (!res.ok) {
       console.error('Reenviar invitación:', json.error || res.statusText)
       setReenvios(prev => ({ ...prev, [id]: 'error' }))
     } else {
-      setReenvios(prev => ({ ...prev, [id]: 'ok' }))
+      const next =
+        json.mode === 'password_reset' ? 'ok_reset' : 'ok_invite'
+      setReenvios(prev => ({ ...prev, [id]: next }))
     }
     setTimeout(() => setReenvios(prev => ({ ...prev, [id]: 'idle' })), 3000)
   }
@@ -189,7 +196,7 @@ export default function GestionEscuelas() {
                         disabled={estadoReenvio === 'loading'}
                         aria-label="Reenviar invitación por email"
                         className={`text-xs px-3 py-2 rounded-lg transition-all text-center sm:text-left ${
-                          estadoReenvio === 'ok'
+                          estadoReenvio === 'ok_invite' || estadoReenvio === 'ok_reset'
                             ? 'bg-primary-100 text-primary-700'
                             : estadoReenvio === 'error'
                               ? 'bg-red-100 text-red-600'
@@ -199,20 +206,24 @@ export default function GestionEscuelas() {
                         <span className="sm:hidden">
                           {estadoReenvio === 'loading'
                             ? 'Enviando...'
-                            : estadoReenvio === 'ok'
-                              ? '✓ Enviado'
-                              : estadoReenvio === 'error'
-                                ? 'Error'
-                                : '📧 Reenviar'}
+                            : estadoReenvio === 'ok_invite'
+                              ? '✓ Invitación enviada'
+                              : estadoReenvio === 'ok_reset'
+                                ? '✓ Mail de acceso'
+                                : estadoReenvio === 'error'
+                                  ? 'Error'
+                                  : '📧 Reenviar'}
                         </span>
                         <span className="hidden sm:inline">
                           {estadoReenvio === 'loading'
                             ? 'Enviando...'
-                            : estadoReenvio === 'ok'
-                              ? '✓ Enviado'
-                              : estadoReenvio === 'error'
-                                ? 'Error'
-                                : '📧 Reenviar invitación'}
+                            : estadoReenvio === 'ok_invite'
+                              ? '✓ Invitación enviada'
+                              : estadoReenvio === 'ok_reset'
+                                ? '✓ Mail de acceso enviado (ya tenía cuenta)'
+                                : estadoReenvio === 'error'
+                                  ? 'Error'
+                                  : '📧 Reenviar invitación'}
                         </span>
                       </button>
                       <button
