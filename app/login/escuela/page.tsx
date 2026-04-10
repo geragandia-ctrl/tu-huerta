@@ -106,7 +106,10 @@ function LoginEscuelaForm() {
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', window.location.pathname + window.location.search)
     }
-    router.push('/dashboard/escuela')
+    const mustChange = Boolean(
+      (user.user_metadata as { must_change_password?: boolean } | undefined)?.must_change_password
+    )
+    router.push(mustChange ? '/dashboard/escuela/cambiar-password' : '/dashboard/escuela')
   }
 
   async function handleNuevaPassword(e: React.FormEvent) {

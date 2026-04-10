@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import PageLoading from '@/components/PageLoading'
 
 export default function EscuelaDashboardLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     let cancelled = false
@@ -21,6 +22,14 @@ export default function EscuelaDashboardLayout({ children }: { children: React.R
       if (cancelled) return
       if (!user) {
         router.replace('/login/escuela')
+        return
+      }
+
+      const mustChange = Boolean(
+        (user.user_metadata as { must_change_password?: boolean } | undefined)?.must_change_password
+      )
+      if (mustChange && pathname && !pathname.includes('/cambiar-password')) {
+        router.replace('/dashboard/escuela/cambiar-password')
         return
       }
 
@@ -63,7 +72,7 @@ export default function EscuelaDashboardLayout({ children }: { children: React.R
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, pathname])
 
   if (!ready) {
     return <PageLoading message="Verificando acceso..." />

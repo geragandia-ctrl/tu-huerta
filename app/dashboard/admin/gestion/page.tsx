@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PageLoading from '@/components/PageLoading'
-import { escuelaLoginAbsoluteUrl } from '@/lib/site-url'
 
 export default function GestionEscuelas() {
   const [escuelas, setEscuelas] = useState<any[]>([])
@@ -16,7 +15,7 @@ export default function GestionEscuelas() {
   const [filtro, setFiltro] = useState<'todas' | 'activas' | 'inactivas'>('todas')
   const [busqueda, setBusqueda] = useState('')
   const [reenvios, setReenvios] = useState<{
-    [key: string]: 'idle' | 'loading' | 'ok_invite' | 'ok_reset' | 'error'
+    [key: string]: 'idle' | 'loading' | 'ok_invite' | 'error'
   }>({})
   const router = useRouter()
 
@@ -51,24 +50,20 @@ export default function GestionEscuelas() {
 
   async function reenviarInvitacion(id: string, email: string) {
     setReenvios(prev => ({ ...prev, [id]: 'loading' }))
-    const redirectTo = escuelaLoginAbsoluteUrl()
-    const res = await fetch('/api/admin/invite', {
+    const res = await fetch('/api/admin/escuela-access/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ email, redirectTo }),
+      body: JSON.stringify({ email, password: email }),
     })
     const json = (await res.json()) as {
       error?: string
-      mode?: 'invite' | 'password_reset'
     }
     if (!res.ok) {
       console.error('Reenviar invitación:', json.error || res.statusText)
       setReenvios(prev => ({ ...prev, [id]: 'error' }))
     } else {
-      const next =
-        json.mode === 'password_reset' ? 'ok_reset' : 'ok_invite'
-      setReenvios(prev => ({ ...prev, [id]: next }))
+      setReenvios(prev => ({ ...prev, [id]: 'ok_invite' }))
     }
     setTimeout(() => setReenvios(prev => ({ ...prev, [id]: 'idle' })), 3000)
   }
@@ -194,9 +189,9 @@ export default function GestionEscuelas() {
                         type="button"
                         onClick={() => reenviarInvitacion(escuela.id, escuela.email_contacto)}
                         disabled={estadoReenvio === 'loading'}
-                        aria-label="Reenviar invitación por email"
+                        aria-label="Reiniciar acceso (contraseña temporal)"
                         className={`text-xs px-3 py-2 rounded-lg transition-all text-center sm:text-left ${
-                          estadoReenvio === 'ok_invite' || estadoReenvio === 'ok_reset'
+                          estadoReenvio === 'ok_invite'
                             ? 'bg-primary-100 text-primary-700'
                             : estadoReenvio === 'error'
                               ? 'bg-red-100 text-red-600'
@@ -205,25 +200,21 @@ export default function GestionEscuelas() {
                       >
                         <span className="sm:hidden">
                           {estadoReenvio === 'loading'
-                            ? 'Enviando...'
+                            ? 'Reiniciando...'
                             : estadoReenvio === 'ok_invite'
-                              ? '✓ Invitación enviada'
-                              : estadoReenvio === 'ok_reset'
-                                ? '✓ Mail de acceso'
+                                ? '✓ Acceso reiniciado'
                                 : estadoReenvio === 'error'
                                   ? 'Error'
-                                  : '📧 Reenviar'}
+                                  : '🔁 Reiniciar acceso'}
                         </span>
                         <span className="hidden sm:inline">
                           {estadoReenvio === 'loading'
-                            ? 'Enviando...'
+                              ? 'Reiniciando...'
                             : estadoReenvio === 'ok_invite'
-                              ? '✓ Invitación enviada'
-                              : estadoReenvio === 'ok_reset'
-                                ? '✓ Mail de acceso enviado (ya tenía cuenta)'
+                                ? '✓ Acceso reiniciado'
                                 : estadoReenvio === 'error'
                                   ? 'Error'
-                                  : '📧 Reenviar invitación'}
+                                  : '🔁 Reiniciar acceso'}
                         </span>
                       </button>
                       <button

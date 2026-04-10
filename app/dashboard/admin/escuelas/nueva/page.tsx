@@ -9,34 +9,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { escuelaLoginAbsoluteUrl } from '@/lib/site-url'
 
-async function inviteEscuelaPorEmail(
-  email: string,
-  escuelaId: string,
-  redirectTo: string | undefined
-) {
-  const res = await fetch('/api/admin/invite', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({
-      email,
-      redirectTo,
-      data: { escuela_id: escuelaId, rol: 'escuela' },
-    }),
-  })
-  const json = (await res.json()) as { error?: string }
-  if (!res.ok) {
-    return { error: json.error || 'Error al enviar la invitación' }
-  }
-  return { error: null as string | null }
-}
-
 export default function NuevaEscuela() {
   const [nombre, setNombre] = useState('')
   const [direccion, setDireccion] = useState('')
   const [localidad, setLocalidad] = useState('')
   const [telefono, setTelefono] = useState('')
   const [email, setEmail] = useState('')
+  const [passwordInicial, setPasswordInicial] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
@@ -72,12 +51,20 @@ export default function NuevaEscuela() {
     // Crear registro de materiales vacío para la escuela
     await supabase.from('materiales').insert({ escuela_id: escuela.id })
 
-    const redirectTo = escuelaLoginAbsoluteUrl()
-    const { error: errorInvite } = await inviteEscuelaPorEmail(email, escuela.id, redirectTo)
-
-    if (errorInvite) {
+    const resAcceso = await fetch('/api/admin/escuela-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        email,
+        escuelaId: escuela.id,
+        password: passwordInicial || email,
+      }),
+    })
+    const jsonAcceso = (await resAcceso.json()) as { error?: string }
+    if (!resAcceso.ok) {
       setError(
-        `Escuela creada, pero no se pudo enviar el email de invitación (${errorInvite}). Revisá que en Vercel esté SUPABASE_SERVICE_ROLE_KEY y el SMTP en Supabase.`
+        `Escuela creada, pero no se pudo crear el acceso (${jsonAcceso.error || resAcceso.statusText}).`
       )
       setLoading(false)
       return
@@ -94,8 +81,20 @@ export default function NuevaEscuela() {
           <span className="text-5xl block mb-4">✅</span>
           <h1 className="text-xl font-bold text-neutral-900 mb-2">¡Escuela creada!</h1>
           <p className="text-sm text-neutral-500 mb-6">
-            Se envió una invitación por email a <strong>{email}</strong> para que configuren su acceso.
+            Escuela creada. Usá estas credenciales para que puedan ingresar y cambiar la contraseña en el primer acceso.
           </p>
+          <div className="text-left bg-neutral-50 border border-neutral-200 rounded-xl p-4 mb-6">
+            <p className="text-xs text-neutral-500 mb-2">Credenciales</p>
+            <p className="text-sm">
+              <span className="font-semibold">Usuario:</span> {email}
+            </p>
+            <p className="text-sm break-all">
+              <span className="font-semibold">Contraseña inicial:</span> {passwordInicial || email}
+            </p>
+            <p className="text-xs text-neutral-400 mt-2">
+              Login: <span className="font-medium">{escuelaLoginAbsoluteUrl() || 'https://espaciosverdes.app/login/escuela'}</span>
+            </p>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               type="button"
@@ -103,6 +102,7 @@ export default function NuevaEscuela() {
                 setExito(false)
                 setNombre('')
                 setEmail('')
+                setPasswordInicial('')
                 setDireccion('')
                 setLocalidad('')
                 setTelefono('')
@@ -142,7 +142,7 @@ export default function NuevaEscuela() {
           <div className="mb-6">
             <h1 className="text-xl font-bold text-neutral-900">Nueva escuela</h1>
             <p className="text-sm text-neutral-500 mt-1">
-              Se va a crear la escuela y enviar una invitación por email para que configuren su acceso
+              Se va a crear la escuela y generar un acceso (usuario y contraseña). En el primer ingreso deberán cambiarla.
             </p>
           </div>
 
@@ -210,13 +210,33 @@ export default function NuevaEscuela() {
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => {
+                  const next = e.target.value
+                  setEmail(next)
+                  if (!passwordInicial) setPasswordInicial(next)
+                }}
                 placeholder="escuela123@ejemplo.com"
                 required
                 className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p className="text-xs text-neutral-400 mt-1">
-                A este email le va a llegar la invitación para acceder al sistema
+                Usuario para ingresar (también queda guardado como email de contacto)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Contraseña inicial (sugerida)
+              </label>
+              <input
+                type="text"
+                value={passwordInicial || email}
+                onChange={(e) => setPasswordInicial(e.target.value)}
+                placeholder="Por defecto: el mismo email"
+                className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <p className="text-xs text-neutral-400 mt-1">
+                Recomendación: usá algo simple. La escuela deberá cambiarla al primer ingreso.
               </p>
             </div>
 
@@ -230,7 +250,7 @@ export default function NuevaEscuela() {
               type="submit"
               disabled={loading}
               className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Creando escuela...' : 'Crear escuela y enviar invitación'}
+              {loading ? 'Creando escuela...' : 'Crear escuela y generar acceso'}
             </button>
 
           </form>
