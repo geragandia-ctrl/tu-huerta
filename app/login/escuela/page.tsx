@@ -50,6 +50,18 @@ function LoginEscuelaForm() {
     } = await supabase.auth.getUser()
     if (!user) return
 
+    const ensure = await fetch('/api/auth/ensure-perfil', {
+      method: 'POST',
+      credentials: 'same-origin',
+    })
+    if (!ensure.ok) {
+      const body = (await ensure.json()) as { error?: string }
+      await supabase.auth.signOut()
+      setError(body.error || 'No se pudo vincular tu cuenta con una escuela.')
+      setLoading(false)
+      return
+    }
+
     const { data: perfil } = await supabase
       .from('perfiles')
       .select('rol, escuelas(activa)')

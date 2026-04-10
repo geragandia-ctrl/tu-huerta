@@ -24,6 +24,16 @@ export default function EscuelaDashboardLayout({ children }: { children: React.R
         return
       }
 
+      const ensure = await fetch('/api/auth/ensure-perfil', {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+      if (!ensure.ok) {
+        await supabase.auth.signOut()
+        router.replace('/login/escuela')
+        return
+      }
+
       const { data: perfil } = await supabase
         .from('perfiles')
         .select('rol, escuelas(activa)')
