@@ -1,12 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-neutral-50 text-neutral-900 font-sans;
+    @apply bg-neutral-50 text-neutral-900;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -28,5 +27,14 @@
   }
   .badge-mal {
     @apply bg-red-100 text-red-700 text-xs font-semibold px-3 py-1 rounded-full;
+  }
+  .badge-problema {
+    @apply bg-orange-100 text-orange-800 text-xs font-semibold px-3 py-1 rounded-full;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   }
 }

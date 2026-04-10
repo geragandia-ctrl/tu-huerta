@@ -88,11 +88,11 @@ export default function NuevaActualizacion() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 flex flex-col">
+    <main className="min-h-screen bg-neutral-50 flex flex-col pb-safe">
 
       {/* Navbar */}
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+      <nav className="w-full px-4 sm:px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2 min-w-0">
           <Link href="/dashboard/escuela" className="flex items-center gap-2">
             <span className="text-2xl">🌱</span>
             <span className="font-bold text-primary-600 text-lg">EspaciosVerdes</span>
@@ -103,7 +103,7 @@ export default function NuevaActualizacion() {
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto w-full px-6 py-8">
+      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
         <div className="card shadow-card">
 
           <div className="mb-6">
@@ -185,7 +185,8 @@ export default function NuevaActualizacion() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed">
+              className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? 'Guardando...' : 'Guardar actualización'}
             </button>
 

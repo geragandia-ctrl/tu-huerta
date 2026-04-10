@@ -7,6 +7,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ActualizacionModal from '@/components/ActualizacionModal'
+import PageLoading from '@/components/PageLoading'
+import { MATERIALES_ITEMS } from '@/lib/materiales-items'
 
 export default function DashboardEscuela() {
   const [escuela, setEscuela] = useState<any>(null)
@@ -64,54 +67,20 @@ export default function DashboardEscuela() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-4xl block mb-3">🌱</span>
-          <p className="text-neutral-500 text-sm">Cargando tu huerta...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading message="Cargando tu huerta..." />
   }
 
   return (
     <main className="min-h-screen bg-neutral-50">
 
-      {/* Modal actualizacion */}
-      {modalActualizacion && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setModalActualizacion(null)}>
-          <div className="bg-white rounded-2xl shadow-hover max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-xs text-neutral-400">{new Date(modalActualizacion.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                  <span className={`mt-1 inline-block ${modalActualizacion.estado === 'bien' ? 'badge-bien' : modalActualizacion.estado === 'regular' ? 'badge-regular' : 'badge-mal'}`}>
-                    {modalActualizacion.estado === 'bien' ? '😊 Bien' : modalActualizacion.estado === 'regular' ? '😐 Regular' : '😟 Mal'}
-                  </span>
-                </div>
-                <button onClick={() => setModalActualizacion(null)} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">×</button>
-              </div>
-              <p className="text-sm text-neutral-700 mb-4">{modalActualizacion.descripcion}</p>
-              {modalActualizacion.fotos?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-neutral-500 mb-2">FOTOS</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {modalActualizacion.fotos.map((foto: any) => (
-                      <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                        <img src={foto.url} alt="foto huerta" className="w-full h-36 object-cover rounded-xl hover:opacity-90 transition-opacity" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ActualizacionModal
+        actualizacion={modalActualizacion}
+        onClose={() => setModalActualizacion(null)}
+      />
 
       {/* Navbar */}
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <nav className="w-full px-4 sm:px-6 py-4 bg-white shadow-soft sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🌱</span>
             <div>
@@ -119,22 +88,38 @@ export default function DashboardEscuela() {
               <span className="text-xs text-neutral-400 leading-none">{escuela?.nombre}</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="text-sm text-neutral-500 hover:text-neutral-700">Cerrar sesión</button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="text-sm text-neutral-500 hover:text-neutral-700 shrink-0"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
         {/* Bienvenida */}
         <div className="card shadow-card">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-xl font-bold text-neutral-900">Bienvenida 👋</h1>
               <p className="text-sm text-neutral-500 mt-1">{escuela?.localidad} · {escuela?.direccion}</p>
             </div>
-            <div className="flex gap-2">
-              <Link href="/dashboard/escuela/nueva-actualizacion" className="btn-primary text-sm py-2">+ Nueva actualización</Link>
-              <Link href="/dashboard/escuela/reportar-problema" className="btn-secondary text-sm py-2">Reportar problema</Link>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+              <Link
+                href="/dashboard/escuela/nueva-actualizacion"
+                className="btn-primary text-sm py-2.5 text-center w-full sm:w-auto"
+              >
+                + Nueva actualización
+              </Link>
+              <Link
+                href="/dashboard/escuela/reportar-problema"
+                className="btn-secondary text-sm py-2.5 text-center w-full sm:w-auto"
+              >
+                Reportar problema
+              </Link>
             </div>
           </div>
         </div>
@@ -143,12 +128,7 @@ export default function DashboardEscuela() {
         <div className="card shadow-card">
           <h2 className="text-base font-semibold text-neutral-800 mb-4">📦 Materiales y etapas del programa</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { key: 'taller_capacitacion', label: 'Taller de capacitación', icon: '📚' },
-              { key: 'semillas', label: 'Semillas de estación', icon: '🌾' },
-              { key: 'herramientas', label: 'Kit de herramientas', icon: '🛠️' },
-              { key: 'certificacion', label: 'Certificación', icon: '📜' },
-            ].map((item) => {
+            {MATERIALES_ITEMS.map((item) => {
               const recibido = materiales?.[item.key]
               const fecha = materiales?.[`${item.key}_fecha`]
               return (
@@ -168,9 +148,9 @@ export default function DashboardEscuela() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
   {/* Actualizaciones */}
-  <div className="card shadow-card flex flex-col h-[500px]">
+  <div className="card shadow-card flex flex-col min-h-[280px] max-h-[min(70vh,520px)]">
     <h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">📸 Mis actualizaciones</h2>
-    <div className="overflow-y-auto flex-1 space-y-2 pr-1">
+    <div className="overflow-y-auto flex-1 min-h-0 space-y-2 pr-1">
       {actualizaciones.length === 0 ? (
         <div className="text-center py-8">
           <span className="text-3xl block mb-2">🌱</span>
@@ -203,8 +183,9 @@ export default function DashboardEscuela() {
   </div>
 
   {/* Casos abiertos */}
-  <div className="card shadow-card flex flex-col h-[500px]">
-<h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">⚠️ Mis casos reportados</h2>    <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+  <div className="card shadow-card flex flex-col min-h-[280px] max-h-[min(70vh,520px)]">
+    <h2 className="text-base font-semibold text-neutral-800 mb-4 flex-shrink-0">⚠️ Mis casos reportados</h2>
+    <div className="overflow-y-auto flex-1 min-h-0 space-y-3 pr-1">
       {problemas.length === 0 ? (
         <div className="text-center py-8">
           <span className="text-3xl block mb-2">✅</span>

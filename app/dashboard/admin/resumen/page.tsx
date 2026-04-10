@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import EstadoEscuelaBadge from '@/components/EstadoEscuelaBadge'
+import PageLoading from '@/components/PageLoading'
 
 export default function ResumenGeneral() {
   const [escuelas, setEscuelas] = useState<any[]>([])
@@ -58,14 +60,6 @@ export default function ResumenGeneral() {
     cargarDatos()
   }, [router])
 
-  function getEstadoBadge(escuela: any) {
-    if (escuela.problemasAbiertos > 0) return <span className="badge-problema">⚠️ {escuela.problemasAbiertos} problema{escuela.problemasAbiertos > 1 ? 's' : ''}</span>
-    if (!escuela.ultima || escuela.diasSinActualizar > 7) return <span className="badge-regular">Sin actualizar</span>
-    if (escuela.ultima.estado === 'bien') return <span className="badge-bien">Al día ✓</span>
-    if (escuela.ultima.estado === 'regular') return <span className="badge-regular">Regular</span>
-    return <span className="badge-mal">Necesita atención</span>
-  }
-
   function CheckIcon({ value }: { value: boolean }) {
     return (
       <div className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto text-xs font-bold ${value ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-300'}`}>
@@ -75,42 +69,42 @@ export default function ResumenGeneral() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-4xl block mb-3">🌱</span>
-          <p className="text-neutral-500 text-sm">Cargando resumen...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading message="Cargando resumen..." />
   }
 
   return (
     <main className="min-h-screen bg-neutral-50">
 
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌱</span>
-            <div>
-              <span className="font-bold text-primary-600 text-lg leading-none block">EspaciosVerdes</span>
+      <nav className="w-full px-4 sm:px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl shrink-0">🌱</span>
+            <div className="min-w-0">
+              <span className="font-bold text-primary-600 text-lg leading-none block truncate">
+                EspaciosVerdes
+              </span>
               <span className="text-xs text-neutral-400 leading-none">Resumen general</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
             <button
+              type="button"
               onClick={() => window.print()}
-              className="btn-secondary text-sm py-2">
+              className="btn-secondary text-sm py-2 px-3 shrink-0"
+            >
               🖨️ Imprimir
             </button>
-            <Link href="/dashboard/admin" className="text-sm text-neutral-500 hover:text-neutral-700">
+            <Link
+              href="/dashboard/admin"
+              className="text-sm text-neutral-500 hover:text-neutral-700 px-2 py-2 shrink-0"
+            >
               ← Volver
             </Link>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Encabezado */}
         <div className="mb-6">
@@ -156,7 +150,13 @@ export default function ResumenGeneral() {
                     <td className="px-3 py-3 text-center"><CheckIcon value={escuela.materiales?.semillas} /></td>
                     <td className="px-3 py-3 text-center"><CheckIcon value={escuela.materiales?.herramientas} /></td>
                     <td className="px-3 py-3 text-center"><CheckIcon value={escuela.materiales?.certificacion} /></td>
-                    <td className="px-4 py-3 text-center">{getEstadoBadge(escuela)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <EstadoEscuelaBadge
+                        problemasAbiertos={escuela.problemasAbiertos}
+                        ultima={escuela.ultima}
+                        diasSinActualizar={escuela.diasSinActualizar}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

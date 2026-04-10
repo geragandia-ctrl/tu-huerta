@@ -73,13 +73,22 @@ export default function NuevaEscuela() {
           <p className="text-sm text-neutral-500 mb-6">
             Se envió una invitación por email a <strong>{email}</strong> para que configuren su acceso.
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => { setExito(false); setNombre(''); setEmail(''); setDireccion(''); setLocalidad(''); setTelefono('') }}
-              className="btn-secondary text-sm py-2">
+              type="button"
+              onClick={() => {
+                setExito(false)
+                setNombre('')
+                setEmail('')
+                setDireccion('')
+                setLocalidad('')
+                setTelefono('')
+              }}
+              className="btn-secondary text-sm py-2 w-full sm:w-auto text-center"
+            >
               Agregar otra
             </button>
-            <Link href="/dashboard/admin" className="btn-primary text-sm py-2">
+            <Link href="/dashboard/admin" className="btn-primary text-sm py-2 w-full sm:w-auto text-center">
               Volver al panel
             </Link>
           </div>
@@ -89,11 +98,11 @@ export default function NuevaEscuela() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 flex flex-col">
+    <main className="min-h-screen bg-neutral-50 flex flex-col pb-safe">
 
       {/* Navbar */}
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+      <nav className="w-full px-4 sm:px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2 min-w-0">
           <Link href="/dashboard/admin" className="flex items-center gap-2">
             <span className="text-2xl">🌱</span>
             <span className="font-bold text-primary-600 text-lg">EspaciosVerdes</span>
@@ -104,7 +113,7 @@ export default function NuevaEscuela() {
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto w-full px-6 py-8">
+      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
         <div className="card shadow-card">
 
           <div className="mb-6">

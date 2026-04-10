@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import EstadoEscuelaBadge from '@/components/EstadoEscuelaBadge'
+import PageLoading from '@/components/PageLoading'
 
 export default function DashboardAdmin() {
   const [escuelas, setEscuelas] = useState<any[]>([])
@@ -85,63 +87,49 @@ export default function DashboardAdmin() {
     conProblemas: escuelas.filter(e => e.problemasAbiertos > 0).length,
   }
 
-  function getBadgeEstado(escuela: any) {
-    if (escuela.problemasAbiertos > 0) {
-      return (
-        <span className="badge-problema">
-          ⚠️ {escuela.problemasAbiertos} problema{escuela.problemasAbiertos > 1 ? 's' : ''}
-        </span>
-      )
-    }
-    if (!escuela.ultimaActualizacion || escuela.diasSinActualizar > 7) {
-      return <span className="badge-regular">Sin actualizar</span>
-    }
-    if (escuela.ultimaActualizacion.estado === 'bien') return <span className="badge-bien">Al día ✓</span>
-    if (escuela.ultimaActualizacion.estado === 'regular') return <span className="badge-regular">Regular</span>
-    return <span className="badge-mal">Necesita atención</span>
-  }
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-4xl block mb-3">🌱</span>
-          <p className="text-neutral-500 text-sm">Cargando panel...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading message="Cargando panel..." />
   }
 
   return (
     <main className="min-h-screen bg-neutral-50">
 
-      <nav className="w-full px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌱</span>
-            <div>
-              <span className="font-bold text-primary-600 text-lg leading-none block">EspaciosVerdes</span>
+      <nav className="w-full px-4 sm:px-6 py-4 bg-white shadow-soft sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl shrink-0">🌱</span>
+            <div className="min-w-0">
+              <span className="font-bold text-primary-600 text-lg leading-none block truncate">
+                EspaciosVerdes
+              </span>
               <span className="text-xs text-neutral-400 leading-none">Panel Administrador</span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/admin/escuelas/nueva" className="btn-primary text-sm py-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end w-full sm:w-auto">
+            <Link href="/dashboard/admin/escuelas/nueva" className="btn-primary text-sm py-2 px-3 sm:px-4 text-center shrink-0">
               + Nueva escuela
             </Link>
-            <Link href="/dashboard/admin/resumen" className="btn-secondary text-sm py-2">
-  📊 Ver resumen
-</Link>
-<Link href="/dashboard/admin/gestion" className="btn-secondary text-sm py-2">
-  ⚙️ Gestión
-</Link>
-            <button onClick={handleLogout} className="text-sm text-neutral-500 hover:text-neutral-700">
+            <Link
+              href="/dashboard/admin/resumen"
+              className="btn-secondary text-sm py-2 px-3 sm:px-4 text-center shrink-0"
+            >
+              📊 Resumen
+            </Link>
+            <Link href="/dashboard/admin/gestion" className="btn-secondary text-sm py-2 px-3 sm:px-4 text-center shrink-0">
+              ⚙️ Gestión
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm text-neutral-500 hover:text-neutral-700 px-2 py-2 shrink-0"
+            >
               Cerrar sesión
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
         {/* Estadísticas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -207,14 +195,15 @@ export default function DashboardAdmin() {
                 <Link
                   key={escuela.id}
                   href={`/dashboard/admin/escuelas/${escuela.id}`}
-                  className="flex items-center justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🌿</span>
-                    <div>
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-neutral-50 hover:bg-primary-50 rounded-xl px-4 py-3 transition-colors group"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="text-xl shrink-0">🌿</span>
+                    <div className="min-w-0">
                       <p className="text-sm font-medium text-neutral-800 group-hover:text-primary-700">
                         {escuela.nombre}
                       </p>
-                      <p className="text-xs text-neutral-400">
+                      <p className="text-xs text-neutral-400 line-clamp-2 sm:line-clamp-none">
                         {escuela.localidad}
                         {escuela.diasSinActualizar !== null
                           ? ` · Última actualización hace ${escuela.diasSinActualizar} día${escuela.diasSinActualizar !== 1 ? 's' : ''}`
@@ -222,7 +211,13 @@ export default function DashboardAdmin() {
                       </p>
                     </div>
                   </div>
-                  {getBadgeEstado(escuela)}
+                  <div className="shrink-0 self-start sm:self-center pl-9 sm:pl-0">
+                    <EstadoEscuelaBadge
+                      problemasAbiertos={escuela.problemasAbiertos}
+                      ultima={escuela.ultimaActualizacion}
+                      diasSinActualizar={escuela.diasSinActualizar}
+                    />
+                  </div>
                 </Link>
               ))}
             </div>
