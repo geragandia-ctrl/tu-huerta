@@ -6,6 +6,8 @@
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { ensureRecoverySessionFromUrl } from '@/lib/auth-recovery'
+import type { AuthChangeEvent } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 function LoginEscuelaForm() {
@@ -33,15 +35,32 @@ function LoginEscuelaForm() {
       setRecoveryMode(true)
     }
 
+    let cancelled = false
+    ;(async () => {
+      if (typeof window !== 'undefined') {
+        await ensureRecoverySessionFromUrl(supabase)
+        if (cancelled) return
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (session && window.location.hash.includes('type=recovery')) {
+          setRecoveryMode(true)
+        }
+      }
+    })()
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event === 'PASSWORD_RECOVERY') {
         setRecoveryMode(true)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function verificarEscuelaYRedirigir(supabase: ReturnType<typeof createClient>) {
@@ -107,6 +126,7 @@ function LoginEscuelaForm() {
     }
 
     const supabase = createClient()
+    await ensureRecoverySessionFromUrl(supabase)
     const {
       data: { session },
     } = await supabase.auth.getSession()

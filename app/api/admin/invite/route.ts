@@ -98,7 +98,8 @@ export async function POST(request: Request) {
       }
 
       const publicClient = createClient(url, anon, {
-        auth: { persistSession: false, autoRefreshToken: false },
+        // Implicit: el recover por mail debe coincidir con el cliente browser (sin PKCE en servidor).
+        auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false },
       })
 
       const { error: resetError } = await publicClient.auth.resetPasswordForEmail(email, {
