@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PageLoading from '@/components/PageLoading'
+import { escuelaLoginAbsoluteUrl } from '@/lib/site-url'
 
 export default function GestionEscuelas() {
   const [escuelas, setEscuelas] = useState<any[]>([])
@@ -48,9 +49,16 @@ export default function GestionEscuelas() {
 
   async function reenviarInvitacion(id: string, email: string) {
     setReenvios(prev => ({ ...prev, [id]: 'loading' }))
-    const supabase = createClient()
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email)
-    if (error) {
+    const redirectTo = escuelaLoginAbsoluteUrl()
+    const res = await fetch('/api/admin/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, redirectTo }),
+    })
+    const json = (await res.json()) as { error?: string }
+    if (!res.ok) {
+      console.error('Reenviar invitación:', json.error || res.statusText)
       setReenvios(prev => ({ ...prev, [id]: 'error' }))
     } else {
       setReenvios(prev => ({ ...prev, [id]: 'ok' }))

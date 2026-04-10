@@ -7,6 +7,29 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { escuelaLoginAbsoluteUrl } from '@/lib/site-url'
+
+async function inviteEscuelaPorEmail(
+  email: string,
+  escuelaId: string,
+  redirectTo: string | undefined
+) {
+  const res = await fetch('/api/admin/invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      email,
+      redirectTo,
+      data: { escuela_id: escuelaId, rol: 'escuela' },
+    }),
+  })
+  const json = (await res.json()) as { error?: string }
+  if (!res.ok) {
+    return { error: json.error || 'Error al enviar la invitación' }
+  }
+  return { error: null as string | null }
+}
 
 export default function NuevaEscuela() {
   const [nombre, setNombre] = useState('')
@@ -49,13 +72,13 @@ export default function NuevaEscuela() {
     // Crear registro de materiales vacío para la escuela
     await supabase.from('materiales').insert({ escuela_id: escuela.id })
 
-    // Invitar al usuario por email
-    const { error: errorInvite } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: { escuela_id: escuela.id, rol: 'escuela' }
-    })
+    const redirectTo = escuelaLoginAbsoluteUrl()
+    const { error: errorInvite } = await inviteEscuelaPorEmail(email, escuela.id, redirectTo)
 
     if (errorInvite) {
-      setError('Escuela creada pero hubo un error al enviar la invitación. Podés invitarla manualmente desde Supabase.')
+      setError(
+        `Escuela creada, pero no se pudo enviar el email de invitación (${errorInvite}). Revisá que en Vercel esté SUPABASE_SERVICE_ROLE_KEY y el SMTP en Supabase.`
+      )
       setLoading(false)
       return
     }

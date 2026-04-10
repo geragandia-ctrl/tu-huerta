@@ -3,17 +3,25 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginEscuela() {
+function LoginEscuelaForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const motivoInactiva = searchParams.get('motivo') === 'inactiva'
+
+  useEffect(() => {
+    if (motivoInactiva) {
+      setError('Tu escuela está desactivada. Contactá al ministerio para más información.')
+    }
+  }, [motivoInactiva])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -21,10 +29,33 @@ export default function LoginEscuela() {
     setError('')
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: signError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
+    if (signError) {
       setError('Email o contraseña incorrectos')
+      setLoading(false)
+      return
+    }
+
+    const user = data.user
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('rol, escuelas(activa)')
+      .eq('id', user.id)
+      .single()
+
+    if (!perfil || perfil.rol !== 'escuela') {
+      await supabase.auth.signOut()
+      setError('No tenés acceso como escuela.')
+      setLoading(false)
+      return
+    }
+
+    const raw = perfil.escuelas as { activa: boolean } | { activa: boolean }[] | null
+    const escuela = Array.isArray(raw) ? raw[0] : raw
+    if (!escuela?.activa) {
+      await supabase.auth.signOut()
+      setError('Tu escuela está desactivada. Contactá al ministerio para más información.')
       setLoading(false)
       return
     }
@@ -112,5 +143,17 @@ export default function LoginEscuela() {
       </footer>
 
     </main>
+  )
+}
+
+export default function LoginEscuela() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <p className="text-sm text-neutral-500">Cargando...</p>
+      </main>
+    }>
+      <LoginEscuelaForm />
+    </Suspense>
   )
 }
