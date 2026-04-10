@@ -11,6 +11,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 function LoginEscuelaForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [confirmarPassword, setConfirmarPassword] = useState('')
+  const [recoveryMode, setRecoveryMode] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -23,21 +26,30 @@ function LoginEscuelaForm() {
     }
   }, [motivoInactiva])
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
+  useEffect(() => {
     const supabase = createClient()
-    const { data, error: signError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (signError) {
-      setError('Email o contraseña incorrectos')
-      setLoading(false)
-      return
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      setRecoveryMode(true)
     }
 
-    const user = data.user
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function verificarEscuelaYRedirigir(supabase: ReturnType<typeof createClient>) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+
     const { data: perfil } = await supabase
       .from('perfiles')
       .select('rol, escuelas(activa)')
@@ -60,7 +72,68 @@ function LoginEscuelaForm() {
       return
     }
 
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
     router.push('/dashboard/escuela')
+  }
+
+  async function handleNuevaPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    if (nuevaPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
+      setLoading(false)
+      return
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      setError('Las contraseñas no coinciden.')
+      setLoading(false)
+      return
+    }
+
+    const supabase = createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) {
+      setError(
+        'El enlace caducó o no es válido. Pedí que te reenvíen el acceso desde el ministerio.'
+      )
+      setLoading(false)
+      return
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: nuevaPassword })
+
+    if (updateError) {
+      setError(updateError.message || 'No se pudo actualizar la contraseña.')
+      setLoading(false)
+      return
+    }
+
+    await verificarEscuelaYRedirigir(supabase)
+    setLoading(false)
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    const supabase = createClient()
+    const { error: signError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (signError) {
+      setError('Email o contraseña incorrectos')
+      setLoading(false)
+      return
+    }
+
+    await verificarEscuelaYRedirigir(supabase)
+    setLoading(false)
   }
 
   return (
@@ -83,52 +156,110 @@ function LoginEscuelaForm() {
 
           <div className="text-center mb-8">
             <span className="text-4xl mb-3 block">🌿</span>
-            <h1 className="text-2xl font-bold text-neutral-900 mb-1">Acceso Escuelas</h1>
-            <p className="text-sm text-neutral-500">Ingresá con los datos que te proporcionó el ministerio</p>
+            <h1 className="text-2xl font-bold text-neutral-900 mb-1">
+              {recoveryMode ? 'Nueva contraseña' : 'Acceso Escuelas'}
+            </h1>
+            <p className="text-sm text-neutral-500">
+              {recoveryMode
+                ? 'Definí tu nueva contraseña para continuar (es el paso que corresponde después del mail de recuperación).'
+                : 'Ingresá con los datos que te proporcionó el ministerio'}
+            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Email institucional
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="escuela@ejemplo.com"
-                required
-                className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">
-                {error}
+          {recoveryMode ? (
+            <form onSubmit={handleNuevaPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Nueva contraseña
+                </label>
+                <input
+                  type="password"
+                  value={nuevaPassword}
+                  onChange={(e) => setNuevaPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Repetir contraseña
+                </label>
+                <input
+                  type="password"
+                  value={confirmarPassword}
+                  onChange={(e) => setConfirmarPassword(e.target.value)}
+                  placeholder="Repetí la contraseña"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </button>
-          </form>
+              {error && (
+                <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Guardando...' : 'Guardar e ingresar'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Email institucional
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="escuela@ejemplo.com"
+                  required
+                  autoComplete="email"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </button>
+            </form>
+          )}
 
           <p className="text-center text-xs text-neutral-400 mt-6">
             ¿Problemas para ingresar? Contactá al ministerio.
