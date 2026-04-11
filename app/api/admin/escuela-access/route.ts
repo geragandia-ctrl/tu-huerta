@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findUserIdByEmail } from '@/lib/admin-find-user'
+import { isPlausibleEmail, isValidPasswordLength, isValidUuid } from '@/lib/validation'
+import { jsonInternalError } from '@/lib/api-error'
 
 function isUserAlreadyExists(message: string): boolean {
   const m = message.toLowerCase()
@@ -50,20 +52,30 @@ export async function POST(request: Request) {
     const escuelaId = typeof body.escuelaId === 'string' ? body.escuelaId.trim() : ''
     const password = typeof body.password === 'string' ? body.password : ''
 
-    if (!email || !email.includes('@')) {
+    if (!email || !isPlausibleEmail(email)) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
     }
-    if (!escuelaId) {
-      return NextResponse.json({ error: 'Escuela requerida' }, { status: 400 })
+    if (!escuelaId || !isValidUuid(escuelaId)) {
+      return NextResponse.json({ error: 'Escuela no válida' }, { status: 400 })
     }
-    if (!password || password.length < 6) {
+    if (!isValidPasswordLength(password)) {
       return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
+        { error: 'La contraseña debe tener entre 6 y 128 caracteres' },
         { status: 400 }
       )
     }
 
     const admin = createSupabaseAdminClient()
+
+    const { data: escuelaRow, error: escuelaErr } = await admin
+      .from('escuelas')
+      .select('id')
+      .eq('id', escuelaId)
+      .maybeSingle()
+
+    if (escuelaErr || !escuelaRow) {
+      return NextResponse.json({ error: 'No existe la escuela indicada' }, { status: 400 })
+    }
 
     const meta = { escuela_id: escuelaId, rol: 'escuela' as const, must_change_password: true }
 
@@ -120,8 +132,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error interno'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonInternalError(e)
   }
 }
 

@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getPublicSiteUrl } from '@/lib/site-url'
+import { isAllowedAppRedirectUrl } from '@/lib/redirect-allowlist'
+import { isPlausibleEmail } from '@/lib/validation'
+import { jsonInternalError } from '@/lib/api-error'
 
 type Body = {
   email?: string
@@ -47,9 +50,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
     }
 
-    const email = typeof body.email === 'string' ? body.email.trim() : ''
-    if (!email) {
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    if (!email || !isPlausibleEmail(email)) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
+    }
+
+    if (typeof body.redirectTo === 'string' && body.redirectTo.trim()) {
+      if (!isAllowedAppRedirectUrl(body.redirectTo)) {
+        return NextResponse.json({ error: 'URL de redirección no permitida' }, { status: 400 })
+      }
     }
 
     const admin = createSupabaseAdminClient()
@@ -80,6 +89,10 @@ export async function POST(request: Request) {
       const redirectTo =
         body.redirectTo?.trim() ||
         (getPublicSiteUrl() ? `${getPublicSiteUrl()}/login/escuela` : '')
+
+      if (redirectTo && !isAllowedAppRedirectUrl(redirectTo)) {
+        return NextResponse.json({ error: 'URL de redirección no permitida' }, { status: 400 })
+      }
 
       if (!redirectTo.startsWith('http')) {
         return NextResponse.json(
@@ -115,7 +128,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: inviteError.message }, { status: 400 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error interno'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonInternalError(e)
   }
 }

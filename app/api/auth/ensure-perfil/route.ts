@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { jsonInternalError } from '@/lib/api-error'
+import { isValidUuid } from '@/lib/validation'
 
 /**
  * Crea la fila en `perfiles` si el usuario viene de una invitación con
@@ -41,7 +43,24 @@ export async function POST() {
       )
     }
 
+    if (!isValidUuid(escuelaId)) {
+      return NextResponse.json({ error: 'Datos de escuela no válidos' }, { status: 400 })
+    }
+
     const admin = createSupabaseAdminClient()
+    const { data: escuelaRow, error: escuelaErr } = await admin
+      .from('escuelas')
+      .select('id')
+      .eq('id', escuelaId)
+      .maybeSingle()
+
+    if (escuelaErr || !escuelaRow) {
+      return NextResponse.json(
+        { error: 'No existe la escuela indicada. Contactá al ministerio.' },
+        { status: 400 }
+      )
+    }
+
     const { error } = await admin.from('perfiles').insert({
       id: user.id,
       escuela_id: escuelaId,
@@ -58,7 +77,6 @@ export async function POST() {
 
     return NextResponse.json({ ok: true, created: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error interno'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonInternalError(e)
   }
 }

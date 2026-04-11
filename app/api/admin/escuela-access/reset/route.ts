@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findUserIdByEmail } from '@/lib/admin-find-user'
+import { isPlausibleEmail, isValidPasswordLength } from '@/lib/validation'
+import { jsonInternalError } from '@/lib/api-error'
 
 type Body = {
   email?: string
@@ -38,12 +40,12 @@ export async function POST(request: Request) {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body.password === 'string' ? body.password : ''
 
-    if (!email || !email.includes('@')) {
+    if (!email || !isPlausibleEmail(email)) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
     }
-    if (!password || password.length < 6) {
+    if (!isValidPasswordLength(password)) {
       return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
+        { error: 'La contraseña debe tener entre 6 y 128 caracteres' },
         { status: 400 }
       )
     }
@@ -69,8 +71,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error interno'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonInternalError(e)
   }
 }
 
