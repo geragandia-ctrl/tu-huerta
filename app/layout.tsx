@@ -19,11 +19,12 @@ if (siteUrl) {
   }
 }
 
-export const metadata: Metadata = {
-  ...(metadataBase ? { metadataBase } : {}),
-  title: 'Tu Huerta — Programa de Huertas Escolares',
-  description:
-    'Sistema de seguimiento del Programa Tu Huerta. Ministerio de Ambiente y Economía Circular de Córdoba.',
+export const metadata = {
+  title: 'EspaciosVerdes',
+  description: 'Sistema de seguimiento de huertas escolares — Ministerio de Ambiente de Córdoba',
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>',
+  },
 }
 
 export const viewport: Viewport = {

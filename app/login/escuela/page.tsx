@@ -305,7 +305,7 @@ function LoginEscuelaForm() {
 
       {/* Footer */}
       <footer className="py-4 px-6 text-center text-xs text-neutral-400">
-        Desarrollado por <a href="https://ggdesarrollos.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">GG Desarrollos</a>
+        Desarrollado por <a href="https://www.ggdesarrollos.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">GG Desarrollos</a>
       </footer>
 
     </main>

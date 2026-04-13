@@ -108,7 +108,7 @@ export default function Home() {
       <footer className="border-t border-neutral-200 bg-white py-6 px-6 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm text-neutral-400">
           <span className="text-center sm:text-left">Programa Tu Huerta · Ministerio de Ambiente y Economía Circular · Córdoba</span>
-          <span>Desarrollado por <a href="https://ggdesarrollos.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline font-medium">GG Desarrollos</a></span>
+          <span>Desarrollado por <a href="https://www.ggdesarrollos.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline font-medium">GG Desarrollos</a></span>
         </div>
       </footer>
 
