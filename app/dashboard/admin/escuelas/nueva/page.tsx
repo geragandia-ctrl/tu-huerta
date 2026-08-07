@@ -1,13 +1,22 @@
 // app/dashboard/admin/escuelas/nueva/page.tsx
-// Formulario para que el admin cree una nueva escuela y le envíe la invitación
+// Formulario para que el admin cree una nueva escuela, elija sus programas
+// y genere el acceso (usuario + contraseña inicial)
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { escuelaLoginAbsoluteUrl } from '@/lib/site-url'
+
+// Tipo mínimo para los programas que traemos de la base
+type Programa = {
+  id: string
+  nombre: string
+  icono: string | null
+  orden: number
+}
 
 export default function NuevaEscuela() {
   const [nombre, setNombre] = useState('')
@@ -19,12 +28,44 @@ export default function NuevaEscuela() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
+
+  // Programas disponibles (traídos de la base) y los seleccionados
+  const [programas, setProgramas] = useState<Programa[]>([])
+  const [programasSeleccionados, setProgramasSeleccionados] = useState<string[]>([])
+
   const router = useRouter()
+
+  // Cargar los programas disponibles al montar el componente
+  useEffect(() => {
+    async function cargarProgramas() {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('programas')
+        .select('id, nombre, icono, orden')
+        .order('orden')
+      setProgramas(data || [])
+    }
+    cargarProgramas()
+  }, [])
+
+  // Alternar la selección de un programa
+  function togglePrograma(id: string) {
+    setProgramasSeleccionados(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    )
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Validación: al menos un programa
+    if (programasSeleccionados.length === 0) {
+      setError('Seleccioná al menos un programa para la institución.')
+      setLoading(false)
+      return
+    }
 
     const supabase = createClient()
 
@@ -48,9 +89,22 @@ export default function NuevaEscuela() {
       return
     }
 
-    // Crear registro de materiales vacío para la escuela
-    await supabase.from('materiales').insert({ escuela_id: escuela.id })
+    // Crear una inscripción por cada programa seleccionado
+    const inscripciones = programasSeleccionados.map(programa_id => ({
+      escuela_id: escuela.id,
+      programa_id,
+    }))
+    const { error: errorInscripciones } = await supabase
+      .from('inscripciones')
+      .insert(inscripciones)
 
+    if (errorInscripciones) {
+      setError('La institución se creó pero hubo un error al asignar los programas.')
+      setLoading(false)
+      return
+    }
+
+    // Crear el acceso (usuario + contraseña) vía API server-side
     const resAcceso = await fetch('/api/admin/escuela-access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -79,9 +133,9 @@ export default function NuevaEscuela() {
       <main className="min-h-screen bg-neutral-50 flex items-center justify-center px-6">
         <div className="card shadow-card w-full max-w-md text-center">
           <span className="text-5xl block mb-4">✅</span>
-          <h1 className="text-xl font-bold text-neutral-900 mb-2">¡Escuela creada!</h1>
+          <h1 className="text-xl font-bold text-neutral-900 mb-2">¡Institución creada!</h1>
           <p className="text-sm text-neutral-500 mb-6">
-            Escuela creada. Usá estas credenciales para que puedan ingresar y cambiar la contraseña en el primer acceso.
+            Usá estas credenciales para que puedan ingresar y cambiar la contraseña en el primer acceso.
           </p>
           <div className="text-left bg-neutral-50 border border-neutral-200 rounded-xl p-4 mb-6">
             <p className="text-xs text-neutral-500 mb-2">Credenciales</p>
@@ -106,6 +160,7 @@ export default function NuevaEscuela() {
                 setDireccion('')
                 setLocalidad('')
                 setTelefono('')
+                setProgramasSeleccionados([])
               }}
               className="btn-secondary text-sm py-2 w-full sm:w-auto text-center"
             >
@@ -140,9 +195,9 @@ export default function NuevaEscuela() {
         <div className="card shadow-card">
 
           <div className="mb-6">
-            <h1 className="text-xl font-bold text-neutral-900">Nueva escuela</h1>
+            <h1 className="text-xl font-bold text-neutral-900">Nueva institución</h1>
             <p className="text-sm text-neutral-500 mt-1">
-              Se va a crear la escuela y generar un acceso (usuario y contraseña). En el primer ingreso deberán cambiarla.
+              Se va a crear la institución, asignar sus programas y generar un acceso. En el primer ingreso deberán cambiar la contraseña.
             </p>
           </div>
 
@@ -150,7 +205,7 @@ export default function NuevaEscuela() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Nombre de la escuela
+                Nombre de la institución
               </label>
               <input
                 type="text"
@@ -203,6 +258,43 @@ export default function NuevaEscuela() {
               />
             </div>
 
+            {/* Selector de programas */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Programas de la institución
+              </label>
+              <p className="text-xs text-neutral-400 mb-3">
+                Seleccioná uno o más. Podés modificarlos más adelante.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {programas.map((programa) => {
+                  const seleccionado = programasSeleccionados.includes(programa.id)
+                  return (
+                    <button
+                      key={programa.id}
+                      type="button"
+                      onClick={() => togglePrograma(programa.id)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                        seleccionado
+                          ? 'bg-primary-50 border-primary-400'
+                          : 'bg-neutral-50 border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-xl">{programa.icono}</span>
+                      <span className={`flex-1 text-sm font-medium ${seleccionado ? 'text-primary-700' : 'text-neutral-600'}`}>
+                        {programa.nombre}
+                      </span>
+                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${
+                        seleccionado ? 'bg-primary-600 text-white' : 'bg-white border border-neutral-300 text-transparent'
+                      }`}>
+                        ✓
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Email de contacto
@@ -236,7 +328,7 @@ export default function NuevaEscuela() {
                 className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p className="text-xs text-neutral-400 mt-1">
-                Recomendación: usá algo simple. La escuela deberá cambiarla al primer ingreso.
+                Recomendación: usá algo simple. La institución deberá cambiarla al primer ingreso.
               </p>
             </div>
 
@@ -250,7 +342,7 @@ export default function NuevaEscuela() {
               type="submit"
               disabled={loading}
               className="btn-primary w-full text-center disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Creando escuela...' : 'Crear escuela y generar acceso'}
+              {loading ? 'Creando institución...' : 'Crear institución y generar acceso'}
             </button>
 
           </form>
