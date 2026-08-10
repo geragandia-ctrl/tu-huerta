@@ -1,12 +1,20 @@
 // app/dashboard/escuela/nueva-actualizacion/page.tsx
-// Formulario para que la escuela cargue una actualización semanal de su huerta
+// Formulario para que la escuela cargue una actualización.
+// Si la institución tiene varios programas, elige a cuál corresponde.
+// Si tiene uno solo, se asigna automáticamente.
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+
+type ProgramaOpcion = {
+  id: string
+  nombre: string
+  icono: string | null
+}
 
 export default function NuevaActualizacion() {
   const [descripcion, setDescripcion] = useState('')
@@ -14,7 +22,43 @@ export default function NuevaActualizacion() {
   const [fotos, setFotos] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Programas de la institución + el seleccionado
+  const [programas, setProgramas] = useState<ProgramaOpcion[]>([])
+  const [programaId, setProgramaId] = useState<string>('')
+  const [cargandoProgramas, setCargandoProgramas] = useState(true)
+
   const router = useRouter()
+
+  // Cargar los programas de la institución al montar
+  useEffect(() => {
+    async function cargarProgramas() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login/escuela'); return }
+
+      const { data: perfil } = await supabase
+        .from('perfiles').select('escuela_id').eq('id', user.id).single()
+      if (!perfil) { setCargandoProgramas(false); return }
+
+      const { data: inscData } = await supabase
+        .from('inscripciones')
+        .select('programas ( id, nombre, icono, orden )')
+        .eq('escuela_id', perfil.escuela_id)
+        .eq('activa', true)
+
+      const lista: ProgramaOpcion[] = (inscData || [])
+        .map((i: any) => i.programas)
+        .filter(Boolean)
+        .sort((a: any, b: any) => (a.orden ?? 999) - (b.orden ?? 999))
+
+      setProgramas(lista)
+      // Si hay un solo programa, lo seleccionamos automáticamente
+      if (lista.length === 1) setProgramaId(lista[0].id)
+      setCargandoProgramas(false)
+    }
+    cargarProgramas()
+  }, [router])
 
   function handleFotos(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return
@@ -27,9 +71,15 @@ export default function NuevaActualizacion() {
     setLoading(true)
     setError('')
 
+    // Validar programa si hay más de uno
+    if (programas.length > 1 && !programaId) {
+      setError('Elegí a qué programa corresponde esta actualización.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
 
-    // Obtener usuario y perfil
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login/escuela')
@@ -48,13 +98,17 @@ export default function NuevaActualizacion() {
       return
     }
 
-    // Crear la actualización
+    // programa_id: el elegido, o el único que tiene, o null
+    const programaFinal =
+      programaId || (programas.length === 1 ? programas[0].id : null)
+
     const { data: actualizacion, error: errorActualizacion } = await supabase
       .from('actualizaciones')
       .insert({
         escuela_id: perfil.escuela_id,
         descripcion,
         estado,
+        programa_id: programaFinal,
       })
       .select()
       .single()
@@ -65,7 +119,6 @@ export default function NuevaActualizacion() {
       return
     }
 
-    // Subir fotos si hay
     for (const foto of fotos) {
       const nombreArchivo = `${perfil.escuela_id}/${actualizacion.id}/${Date.now()}-${foto.name}`
       const { data: fotoSubida } = await supabase.storage
@@ -108,15 +161,44 @@ export default function NuevaActualizacion() {
 
           <div className="mb-6">
             <h1 className="text-xl font-bold text-neutral-900">Nueva actualización</h1>
-            <p className="text-sm text-neutral-500 mt-1">Contanos cómo está la huerta esta semana</p>
+            <p className="text-sm text-neutral-500 mt-1">Contanos cómo viene el avance</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
+            {/* Selector de programa — solo si hay más de uno */}
+            {!cargandoProgramas && programas.length > 1 && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ¿A qué programa corresponde?
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {programas.map((prog) => {
+                    const seleccionado = programaId === prog.id
+                    return (
+                      <button
+                        key={prog.id}
+                        type="button"
+                        onClick={() => setProgramaId(prog.id)}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-left transition-all ${
+                          seleccionado
+                            ? 'bg-primary-50 border-primary-400 text-primary-700'
+                            : 'bg-neutral-50 border-neutral-200 text-neutral-600'
+                        }`}
+                      >
+                        <span className="text-lg">{prog.icono}</span>
+                        <span className="text-sm font-medium">{prog.nombre}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Estado general */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                ¿Cómo está la huerta?
+                ¿Cómo viene el avance?
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -143,7 +225,7 @@ export default function NuevaActualizacion() {
               <textarea
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
-                placeholder="Contanos qué pasó esta semana en la huerta, qué plantaron, cómo están los cultivos..."
+                placeholder="Contanos qué pasó, qué plantaron, cómo están los cultivos..."
                 rows={4}
                 required
                 className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"

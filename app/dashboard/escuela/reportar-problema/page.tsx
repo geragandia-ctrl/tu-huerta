@@ -1,12 +1,20 @@
 // app/dashboard/escuela/reportar-problema/page.tsx
-// Formulario para reportar un problema — con hasta 2 fotos
+// Formulario para reportar un caso — con hasta 2 fotos.
+// Si la institución tiene varios programas, elige a cuál corresponde.
+// Si tiene uno solo, se asigna automáticamente.
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+
+type ProgramaOpcion = {
+  id: string
+  nombre: string
+  icono: string | null
+}
 
 export default function ReportarProblema() {
   const [tipo, setTipo] = useState('')
@@ -14,7 +22,41 @@ export default function ReportarProblema() {
   const [fotos, setFotos] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Programas de la institución + el seleccionado
+  const [programas, setProgramas] = useState<ProgramaOpcion[]>([])
+  const [programaId, setProgramaId] = useState<string>('')
+  const [cargandoProgramas, setCargandoProgramas] = useState(true)
+
   const router = useRouter()
+
+  useEffect(() => {
+    async function cargarProgramas() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login/escuela'); return }
+
+      const { data: perfil } = await supabase
+        .from('perfiles').select('escuela_id').eq('id', user.id).single()
+      if (!perfil) { setCargandoProgramas(false); return }
+
+      const { data: inscData } = await supabase
+        .from('inscripciones')
+        .select('programas ( id, nombre, icono, orden )')
+        .eq('escuela_id', perfil.escuela_id)
+        .eq('activa', true)
+
+      const lista: ProgramaOpcion[] = (inscData || [])
+        .map((i: any) => i.programas)
+        .filter(Boolean)
+        .sort((a: any, b: any) => (a.orden ?? 999) - (b.orden ?? 999))
+
+      setProgramas(lista)
+      if (lista.length === 1) setProgramaId(lista[0].id)
+      setCargandoProgramas(false)
+    }
+    cargarProgramas()
+  }, [router])
 
   function handleFotos(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return
@@ -26,6 +68,13 @@ export default function ReportarProblema() {
     setLoading(true)
     setError('')
 
+    // Validar programa si hay más de uno
+    if (programas.length > 1 && !programaId) {
+      setError('Elegí a qué programa corresponde este caso.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login/escuela'); return }
@@ -34,9 +83,17 @@ export default function ReportarProblema() {
       .from('perfiles').select('escuela_id').eq('id', user.id).single()
     if (!perfil) { setError('No se encontró tu perfil'); setLoading(false); return }
 
+    const programaFinal =
+      programaId || (programas.length === 1 ? programas[0].id : null)
+
     const { data: problema, error: errorProblema } = await supabase
       .from('problemas')
-      .insert({ escuela_id: perfil.escuela_id, tipo, descripcion })
+      .insert({
+        escuela_id: perfil.escuela_id,
+        tipo,
+        descripcion,
+        programa_id: programaFinal,
+      })
       .select().single()
 
     if (errorProblema || !problema) {
@@ -45,7 +102,6 @@ export default function ReportarProblema() {
       return
     }
 
-    // Subir fotos si hay
     for (const foto of fotos) {
       const nombreArchivo = `problemas/${problema.id}/${Date.now()}-${foto.name}`
       const { data: fotoSubida } = await supabase.storage
@@ -87,6 +143,35 @@ export default function ReportarProblema() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Selector de programa — solo si hay más de uno */}
+            {!cargandoProgramas && programas.length > 1 && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ¿A qué programa corresponde?
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {programas.map((prog) => {
+                    const seleccionado = programaId === prog.id
+                    return (
+                      <button
+                        key={prog.id}
+                        type="button"
+                        onClick={() => setProgramaId(prog.id)}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-left transition-all ${
+                          seleccionado
+                            ? 'bg-primary-50 border-primary-400 text-primary-700'
+                            : 'bg-neutral-50 border-neutral-200 text-neutral-600'
+                        }`}
+                      >
+                        <span className="text-lg">{prog.icono}</span>
+                        <span className="text-sm font-medium">{prog.nombre}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">Tipo de problema</label>
