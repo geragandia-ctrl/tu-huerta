@@ -33,18 +33,18 @@ export default function Home() {
         {/* Texto principal */}
         <div className="flex-1 text-center lg:text-left">
           <span className="inline-block bg-primary-100 text-primary-700 text-xs sm:text-sm font-semibold px-4 py-1 rounded-full mb-4">
-            Programa Tu Huerta · Dirección General de Viveros y Espacios Verdes
+            Dirección General de Viveros y Espacios Verdes
           </span>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 leading-tight mb-4">
-            Seguimiento de <span className="text-primary-600">huertas escolares</span> en toda la provincia
+            Seguimiento de <span className="text-primary-600">intervenciones</span> en instituciones de la Ciudad de Córdoba
           </h1>
           <p className="text-base sm:text-lg text-neutral-600 mb-8 max-w-xl mx-auto lg:mx-0">
-            Registrá el avance de tu huerta, reportá problemas y accedé 
+            Registrá el avance de cada programa, reportá casos y accedé
             a recursos técnicos desde cualquier dispositivo.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
             <Link href="/login/escuela" className="btn-primary text-center">
-              Acceso Escuelas
+              Acceso Instituciones
             </Link>
             <Link href="/login/admin" className="btn-secondary text-center">
               Acceso Administradores
@@ -69,29 +69,29 @@ export default function Home() {
             {/* Contenido simulado */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-neutral-700">Escuelas activas</span>
+                <span className="text-sm font-semibold text-neutral-700">Instituciones activas</span>
                 <span className="badge-bien">247 activas</span>
               </div>
 
               {[
                 { nombre: 'Escuela Nº 123 — Alta Córdoba', estado: 'bien' },
-                { nombre: 'Escuela Nº 87 — Villa María', estado: 'regular' },
+                { nombre: 'Centro Vecinal — Villa María', estado: 'regular' },
                 { nombre: 'Escuela Nº 204 — Río Cuarto', estado: 'bien' },
-              ].map((escuela, i) => (
+              ].map((institucion, i) => (
                 <div key={i} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🌿</span>
-                    <span className="text-sm text-neutral-700">{escuela.nombre}</span>
+                    <span className="text-sm text-neutral-700">{institucion.nombre}</span>
                   </div>
-                  <span className={escuela.estado === 'bien' ? 'badge-bien' : 'badge-regular'}>
-                    {escuela.estado === 'bien' ? 'Al día' : 'Sin actualizar'}
+                  <span className={institucion.estado === 'bien' ? 'badge-bien' : 'badge-regular'}>
+                    {institucion.estado === 'bien' ? 'Al día' : 'Sin actualizar'}
                   </span>
                 </div>
               ))}
 
               <div className="pt-2">
                 <div className="flex justify-between text-xs text-neutral-500 mb-1">
-                  <span>Escuelas con huerta activa</span>
+                  <span>Instituciones con intervención activa</span>
                   <span>82%</span>
                 </div>
                 <div className="w-full bg-neutral-200 rounded-full h-2">
@@ -107,7 +107,7 @@ export default function Home() {
       {/* ── FOOTER ── */}
       <footer className="border-t border-neutral-200 bg-white py-6 px-6 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm text-neutral-400">
-          <span className="text-center sm:text-left">Programa Tu Huerta · Ministerio de Ambiente y Economía Circular · Córdoba</span>
+          <span className="text-center sm:text-left">Dirección General de Viveros y Espacios Verdes · Ministerio de Ambiente y Economía Circular · Córdoba</span>
           <span>Desarrollado por <a href="https://www.ggdesarrollos.com/" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline font-medium">GG Desarrollos</a></span>
         </div>
       </footer>
