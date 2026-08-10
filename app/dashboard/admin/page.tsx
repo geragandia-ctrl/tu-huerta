@@ -10,11 +10,20 @@ import Link from 'next/link'
 import EstadoEscuelaBadge from '@/components/EstadoEscuelaBadge'
 import PageLoading from '@/components/PageLoading'
 
+type ProgramaChip = {
+  id: string
+  nombre: string
+  icono: string | null
+  orden: number
+}
+
 export default function DashboardAdmin() {
   const [escuelas, setEscuelas] = useState<any[]>([])
+  const [programasDisponibles, setProgramasDisponibles] = useState<ProgramaChip[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState<'todas' | 'bien' | 'regular' | 'mal' | 'sin-actualizar'>('todas')
+  const [filtroPrograma, setFiltroPrograma] = useState<string>('todos') // 'todos' | programa_id
   const router = useRouter()
 
   useEffect(() => {
@@ -28,9 +37,22 @@ export default function DashboardAdmin() {
         .from('perfiles').select('rol').eq('id', user.id).single()
       if (!perfil || perfil.rol !== 'admin') { router.push('/login/admin'); return }
 
+      // Catálogo de programas (para los chips de filtro)
+      const { data: programasData } = await supabase
+        .from('programas')
+        .select('id, nombre, icono, orden')
+        .order('orden')
+      setProgramasDisponibles(programasData || [])
+
+      // Escuelas con su seguimiento y sus inscripciones (programas)
       const { data: escuelasData } = await supabase
         .from('escuelas')
-        .select(`*, actualizaciones(estado, created_at), problemas(id, resuelto)`)
+        .select(`
+          *,
+          actualizaciones(estado, created_at),
+          problemas(id, resuelto),
+          inscripciones ( activa, programas ( id, nombre, icono, orden ) )
+        `)
         .eq('activa', true)
         .order('nombre')
 
@@ -46,10 +68,15 @@ export default function DashboardAdmin() {
           diasSinActualizar = Math.floor(diff / (1000 * 60 * 60 * 24))
         }
 
-        return { ...escuela, ultimaActualizacion, problemasAbiertos, diasSinActualizar }
+        // Lista de programas de esta institución (solo inscripciones activas)
+        const programas: ProgramaChip[] = (escuela.inscripciones || [])
+          .filter((i: any) => i.activa && i.programas)
+          .map((i: any) => i.programas)
+          .sort((a: any, b: any) => (a.orden ?? 999) - (b.orden ?? 999))
+
+        return { ...escuela, ultimaActualizacion, problemasAbiertos, diasSinActualizar, programas }
       })
 
-      // Ordenar: con problemas primero, luego sin actualizar, luego al día
       escuelasProcesadas.sort((a: any, b: any) => {
         if (a.problemasAbiertos > 0 && b.problemasAbiertos === 0) return -1
         if (a.problemasAbiertos === 0 && b.problemasAbiertos > 0) return 1
@@ -75,6 +102,14 @@ export default function DashboardAdmin() {
       escuela.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       escuela.localidad?.toLowerCase().includes(busqueda.toLowerCase())
     if (!coincideBusqueda) return false
+
+    // Filtro por programa
+    if (filtroPrograma !== 'todos') {
+      const tienePrograma = escuela.programas?.some((p: ProgramaChip) => p.id === filtroPrograma)
+      if (!tienePrograma) return false
+    }
+
+    // Filtro por estado
     if (filtroEstado === 'todas') return true
     if (filtroEstado === 'sin-actualizar') return !escuela.ultimaActualizacion || escuela.diasSinActualizar > 14
     return escuela.ultimaActualizacion?.estado === filtroEstado
@@ -148,7 +183,8 @@ export default function DashboardAdmin() {
         </div>
 
         {/* Filtros */}
-        <div className="card shadow-soft">
+        <div className="card shadow-soft space-y-3">
+          {/* Búsqueda + estado */}
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
@@ -173,6 +209,24 @@ export default function DashboardAdmin() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Filtro por programa */}
+          <div className="flex gap-2 flex-wrap items-center border-t border-neutral-100 pt-3">
+            <span className="text-xs text-neutral-400 mr-1">Programa:</span>
+            <button
+              onClick={() => setFiltroPrograma('todos')}
+              className={`text-xs px-3 py-2 rounded-xl border font-medium transition-all ${filtroPrograma === 'todos' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+              Todos
+            </button>
+            {programasDisponibles.map((prog) => (
+              <button
+                key={prog.id}
+                onClick={() => setFiltroPrograma(prog.id)}
+                className={`text-xs px-3 py-2 rounded-xl border font-medium transition-all ${filtroPrograma === prog.id ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                {prog.icono} {prog.nombre}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -209,6 +263,19 @@ export default function DashboardAdmin() {
                           ? ` · Última actualización hace ${escuela.diasSinActualizar} día${escuela.diasSinActualizar !== 1 ? 's' : ''}`
                           : ' · Sin actualizaciones aún'}
                       </p>
+                      {/* Badges de programas */}
+                      {escuela.programas?.length > 0 && (
+                        <div className="flex gap-1 flex-wrap mt-1.5">
+                          {escuela.programas.map((prog: ProgramaChip) => (
+                            <span
+                              key={prog.id}
+                              className="text-xs bg-white border border-neutral-200 text-neutral-600 px-2 py-0.5 rounded-full"
+                            >
+                              {prog.icono} {prog.nombre}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="shrink-0 self-start sm:self-center pl-9 sm:pl-0">
